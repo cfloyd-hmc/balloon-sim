@@ -1,0 +1,88 @@
+/* Minimize the area of a surface at constant enclosed volume. */
+
+// Modified by conor to do balloon stuff
+
+import graphics
+import meshtools
+import plot
+import optimize
+
+var Nlevels = 5 // Levels of refinement
+var Nsteps = 1000 // Maximum number of steps per refinement level
+
+// Create an initial cube
+var m = PolyhedronMesh([ [-0.5, -0.5, -0.5],
+                         [ 0.5, -0.5, -0.5],
+                         [-0.5,  0.5, -0.5],
+                         [ 0.5,  0.5, -0.5],
+                         [-0.5, -0.5,  0.5],
+                         [ 0.5, -0.5,  0.5],
+                         [-0.5,  0.5,  0.5],
+                         [ 0.5,  0.5,  0.5]],
+                       [ [0,1,3,2], [4,5,7,6],
+                         [0,1,5,4], [3,2,6,7],
+                         [0,2,6,4], [1,3,7,5] ])
+
+
+// note: to properly make a spiral or something, we will need to make a more
+// sophisticated starting mesh.
+
+
+// var h = plotmesh(m)
+// h.title="Sphere"
+// Show(h)
+
+// Set up the problen
+var problem = OptimizationProblem(m)
+
+
+// First modification point: energy function
+// currently, the energy function only takes into account the area, which is great
+// but doesn't do everything we want, namely painting spirals onto the balloon
+
+var la = Area()
+problem.addenergy(la)
+
+// Second modification: contraint
+// This constraint is great for just the shape optimization, but afterwards we will
+// need to be able to increase the volume to simulate the balloon expanding.
+
+var lv = VolumeEnclosed()
+problem.addconstraint(lv)
+
+
+
+// Create the optimizer
+var opt = ShapeOptimizer(problem, m)
+
+// Perform the optimization
+for (i in 1..Nlevels) {
+  opt.conjugategradient(Nsteps)
+
+  if (i==Nlevels) break
+  // Refine
+  var mr=MeshRefiner([m])
+  var refmap = mr.refine()
+  for (el in [problem, opt]) el.update(refmap)
+  m = refmap[m]
+
+  // var g = plotmesh(m)
+  // g.title="middle"
+  // Show(g)
+
+}
+
+// Compare with true area of a sphere for the same volume
+var V0=lv.total(m)
+var Af=la.total(m)
+var R=(V0/(4/3*Pi))^(1/3)
+var area = 4*Pi*R^2
+print "Final area: ${Af} True area: ${area} diff: ${abs(Af-area)}"
+
+m.addgrade(1)
+
+m.save("smoothishsphere.mesh")
+
+// var g = plotmesh(m)
+// g.title="Cube"
+// Show(g)

@@ -1,0 +1,131 @@
+//figuring out how morpho works
+
+import graphics
+import meshtools
+import plot
+import optimize
+import functionals
+
+//****maybe: functionals module?
+
+// var m = PolyhedronMesh([ [-0.5, -0.5, -0.5],
+//                          [ 0.5, -0.5, -0.5],
+//                          [-0.5,  0.5, -0.5],
+//                          [ 0.5,  0.5, -0.5],
+//                          [-0.5, -0.5,  0.5],
+//                          [ 0.5, -0.5,  0.5],
+//                          [-0.5,  0.5,  0.5],
+//                          [ 0.5,  0.5,  0.5]],
+//                        [ [0,1,3,2], [4,5,7,6],
+//                          [0,1,5,4], [3,2,6,7],
+//                          [0,2,6,4], [1,3,7,5] ])
+
+// var s = Selection(m, fn(x,y,z) abs(z)<0.5)
+// s.addgrade(2, partials=true)
+
+// var h = plotmesh(m)
+// Show(h)
+
+
+// var la = Area()
+// print la.total(m)
+// print la.total(m, Selection=s)
+// print "field testing:"
+// print la.integrand(m)
+
+
+
+
+var a = true
+
+var b = false
+
+print a or b
+
+
+
+
+//This will make some areas cost more, which would be cool!
+//could be more aptly named, "areaMultiplier"
+// var f = Field(m, 1, grade=2)
+// // print f
+
+// print m.count(0)
+// print m.count(1)
+// print m.count(2)
+
+// fn belt(x,y,z) {
+//     if (abs(z)<0.5) return 2.0
+//     return 1.0
+// }
+
+
+
+// var g = Field(m, 0, grade=2)
+
+// print g
+
+// print "gtest"
+
+// print g[10]
+
+
+// // var g = f.op(fn (x, y) x.inner(y), f)
+// // print g
+
+
+
+
+
+// print "manual"
+
+// var sum = 0
+// for (i in la.integrand(m)) sum += i
+// // likely slow, but this would give me control to scale, potentially.
+// print sum
+
+
+
+// //not quite working bc g[i] was vertices stuff, but could be ez to fix? idk.
+// sum = 0
+// for (x,i in la.integrand(m)) {
+//     print x
+//     print i
+//     sum += x*g[i]
+// }
+
+
+
+
+// likely slow, but this would give me control to scale, potentially.
+// print sum
+
+
+//playing around with functionals
+
+// class WeightedArea < Functional {
+//     init(field) {
+//         self.ref = field
+//         super.init(1)
+//     }
+
+
+//     //this is just copy-pasted from a different functional in the class
+//     integrandfn(mesh, vert, id, el) { 
+//         var len = (vert.column(el[0])-vert.column(el[1])).norm()
+//         var len0 = self.ref[self.grade, id]
+//         return ((len-len0)/len0)^2/2
+//   }
+// }
+
+
+
+
+
+
+
+
+// print la.gradient(m)
+
+// for (var i in 1..6:2) print i
+

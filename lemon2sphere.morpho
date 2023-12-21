@@ -1,0 +1,61 @@
+/* Minimize the area of a surface at constant enclosed volume. */
+
+import graphics
+import meshtools
+import plot
+import optimize
+
+var Nlevels = 4 // Levels of refinement
+var Nsteps = 1000 // Maximum number of steps per refinement level
+
+// Create an initial cube
+var m = Mesh("lemon.mesh")
+
+var h = plotmesh(m)
+h.title="Start"
+Show(h)
+
+// Set up the problen
+var problem = OptimizationProblem(m)
+var la = Area()
+problem.addenergy(la)
+
+var lv = VolumeEnclosed()
+problem.addconstraint(lv)
+
+// How spherey is our lemon?
+var V0=lv.total(m)
+var Af=la.total(m)
+var R=(V0/(4/3*Pi))^(1/3)
+var area = 4*Pi*R^2
+print "Starting area: ${Af} True area: ${area} diff: ${abs(Af-area)}"
+
+
+
+
+// Create the optimizer
+var opt = ShapeOptimizer(problem, m)
+
+
+// Perform the optimization
+// for (i in 1..Nlevels) {
+opt.conjugategradient(Nsteps)
+
+//   if (i==Nlevels) break
+//   // Refine
+//   var mr=MeshRefiner([m])
+//   var refmap = mr.refine()
+//   for (el in [problem, opt]) el.update(refmap)
+//   m = refmap[m]
+// }
+
+// Compare with true area of a sphere for the same volume
+var V0=lv.total(m)
+var Af=la.total(m)
+var R=(V0/(4/3*Pi))^(1/3)
+var area = 4*Pi*R^2
+print "Final area: ${Af} True area: ${area} diff: ${abs(Af-area)}"
+
+var g = plotmesh(m)
+g.title="Fin"
+Show(g)

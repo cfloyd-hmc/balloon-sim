@@ -1,0 +1,175 @@
+/* Minimize the area of a surface at constant enclosed volume. */
+
+// Modified by conor to do balloon stuff
+
+import graphics
+import meshtools
+import plot
+import optimize
+
+// import functionals
+
+
+// I copy-pasted the functionals module here so I could modify it
+
+/* ***************************************************************
+ * Functionals
+ * ===========
+ * This module provides a class that helps implement new
+ * functionals in morpho, as well as some less common functionals
+ **************************************************************** */
+
+import kdtree
+
+class Functional {
+  init(grade) {
+    self.grade = grade
+  }
+
+  integrand(mesh) {
+    var conn
+    if (self.grade>0) conn=mesh.connectivitymatrix(0, self.grade)
+    var vert=mesh.vertexmatrix()
+    var nel = mesh.count(self.grade) // number of elements
+
+    // print self.grade
+    // print nel
+
+    var out = Matrix(nel)
+
+    for (i in 0...nel) {
+      var el
+      if (conn) el=conn.rowindices(i)
+      out[i]=self.integrandfn(mesh, vert, i, el)
+    }
+
+    return out
+  }
+
+  gradient(mesh) {
+    var conn
+    if (self.grade>0) conn=mesh.connectivitymatrix(0, self.grade)
+    var vert=mesh.vertexmatrix()
+    var nel = mesh.count(self.grade)
+
+    var dim=vert.dimensions()[0]
+    var nv=vert.dimensions()[1]
+    var out = Matrix(dim,nv)
+
+    for (i in 0...nel) {
+      var el
+      if (conn) el=conn.rowindices(i)
+      self.gradientfn(mesh, vert, i, el, out)
+    }
+
+    return out
+  }
+
+  total(mesh) {
+    var a = self.integrand(mesh)
+    return a.sum()
+  }
+}
+
+/** Hookean elasticity:
+  F = 1/2 ((L-L0)/L0)^2
+  Construct with a field of reference lengths */
+class HookeElasticity < Functional {
+  init(field) {
+    self.ref = field
+    super.init(1)
+  }
+
+  integrandfn(mesh, vert, id, el) {
+    var len = (vert.column(el[0])-vert.column(el[1])).norm()
+    // print id
+    var len0 = self.ref[self.grade, id][0] //added a [0] to the end, idk why this thing has to be a matrix value but oh well
+    return ((len-len0)/len0)^2/2
+  }
+
+  gradientfn(mesh, vert, id, el, grd) {
+    var x0 = vert.column(el[0])
+    var x1 = vert.column(el[1])
+    var dx = x0-x1
+
+    var len = dx.norm()
+    var len0 = self.ref[self.grade, id][0] //added [0] here too
+    var g = dx*(len-len0)/(len0^2*len)
+
+    grd.setcolumn(el[0], g+grd.column(el[0]))
+    grd.setcolumn(el[1], -g+grd.column(el[1]))
+  }
+}
+
+
+// back to code that isn't copy-pasted
+
+
+
+var Nsteps = 1000 // Maximum number of steps per refinement level
+
+var m = Mesh("smoothishsphere.mesh")
+
+var s = Selection(m, fn(x,y,z) (abs(y)<0.25) and (x>0) and (z>0))
+s.addgrade(1, partials=true)
+s.addgrade(2, partials=true)
+
+// show starting shape, incl. selection.
+var h = plotselection(m, s)
+h.title="Start"
+Show(h)
+
+// Set up the problen
+var problem = OptimizationProblem(m)
+
+// make the field by setting everybody to the normal ballon springlength
+var f = Field(m, Matrix([0.009]), grade=1) 
+
+var edges = s.idlistforgrade(1)
+
+// change the field to include the belt
+for (id in edges) f[1,id] = Matrix([0.005])
+
+
+//this doesn't work because of the weird matrix([ __ ]) workaround that im using rn
+//but WOULD make a cool wireframe model showing the elasticities
+// var g = plotfield(f)
+// Show(g)
+
+
+
+var lhe = HookeElasticity(f)
+print "total hooke energy: ${lhe.total(m)}"
+
+problem.addenergy(lhe)
+
+
+// *maybe: want to be able to mesh-refine mid-go? this would mean resetting selections.
+
+
+// Second modification: contraint
+// This constraint is great for just the shape optimization, but afterwards we will
+// need to be able to increase the volume to simulate the balloon expanding.
+
+var lv = VolumeEnclosed()
+print "Initial volume: ${lv.total(m)}"
+problem.addconstraint(lv)
+
+// Create the optimizer
+var opt = ShapeOptimizer(problem, m)
+
+// Perform the optimization
+opt.conjugategradient(Nsteps)
+
+print "Final volume: ${lv.total(m)}"
+print "total hooke elast: ${lhe.total(m)}"
+
+m.save("lemon.mesh")
+
+// show new shape
+var g = plotselection(m, s)
+g.title="Finish"
+Show(g)
+
+
+// */
