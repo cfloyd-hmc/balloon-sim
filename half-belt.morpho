@@ -109,11 +109,16 @@ class HookeElasticity < Functional {
 var Nsteps = 1000 // Maximum number of steps per refinement level
 
 var m = Mesh("smoothishsphere.mesh")
+// var s1 = Selection(m, fn(x,y,z) (abs(y)<0.25) and (x>0) and (z>0))
+var s1 = Selection(m, fn(x,y,z) (abs(y+0.4)<0.1))
+s1.addgrade(1, partials=true)
+s1.addgrade(2, partials=true)
 
-var s = Selection(m, fn(x,y,z) (abs(y)<0.25) and (x>0) and (z>0))
-s.addgrade(1, partials=true)
-s.addgrade(2, partials=true)
+var s2 = Selection(m, fn(x,y,z) (abs(y-0.25)<0.1))
+s2.addgrade(1, partials=true)
+s2.addgrade(2, partials=true)
 
+var s = s1.union(s2)
 // show starting shape, incl. selection.
 var h = plotselection(m, s)
 h.title="Start"
